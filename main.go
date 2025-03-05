@@ -24,7 +24,11 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
-	for k, v := range m {
-		fmt.Printf("for size: %d, files: %v\n", k, v)
+	for _, v := range m {
+		res, err := groupByHash(v)
+		if err != nil {
+			log.Fatal(err)
+		}
+		fmt.Printf("res: %v\n", res)
 	}
 }
