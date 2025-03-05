@@ -29,6 +29,14 @@ func main() {
 		if err != nil {
 			log.Fatal(err)
 		}
+		if len(res) < 2 {
+			continue
+		}
 		fmt.Printf("res: %v\n", res)
+		b, err := compareByteByByte(res[0], res[1])
+		if err != nil {
+			log.Fatal(err)
+		}
+		fmt.Println("bytes are equal:", b, "res:", res)
 	}
 }
