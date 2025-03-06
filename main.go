@@ -48,7 +48,7 @@ func main() {
 				}
 			}
 		}
-		s := make([]string, len(eq))
+		s := make([]string, 0, len(eq))
 		for k := range eq {
 			s = append(s, k)
 		}
