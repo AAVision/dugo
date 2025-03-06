@@ -61,3 +61,25 @@ func filesAreEqual(file1, file2 string) (bool, error) {
 		}
 	}
 }
+
+func partitionIntoEqualGroups(files []string) ([][]string, error) {
+	var groups [][]string
+	for _, file := range files {
+		matched := false
+		for i, group := range groups {
+			eq, err := filesAreEqual(group[0], file)
+			if err != nil {
+				return nil, err
+			}
+			if eq {
+				groups[i] = append(groups[i], file)
+				matched = true
+				break
+			}
+		}
+		if !matched {
+			groups = append(groups, []string{file})
+		}
+	}
+	return groups, nil
+}

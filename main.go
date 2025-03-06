@@ -52,29 +52,21 @@ func main() {
 		}
 		res, err := groupByHash(v)
 		if err != nil {
-			log.Fatal(err)
+			log.Printf("Skipping due to error: %v", err)
+			continue
 		}
 		if len(res) < 2 {
 			continue
 		}
-		eq := make(equalSet)
-		for i := range res {
-			for j := i + 1; j < len(res); j++ {
-				b, err := filesAreEqual(res[i], res[j])
-				if err != nil {
-					log.Fatal(err)
-				}
-				if b {
-					eq[res[i]] = struct{}{}
-					eq[res[j]] = struct{}{}
-				}
+		groups, err := partitionIntoEqualGroups(res)
+		if err != nil {
+			log.Fatal(err)
+		}
+		for _, group := range groups {
+			if len(group) >= 2 {
+				fmt.Println("Equal files:", group)
 			}
 		}
-		s := make([]string, 0, len(eq))
-		for k := range eq {
-			s = append(s, k)
-		}
-		fmt.Println("equal files:", s)
 	}
 }
 
