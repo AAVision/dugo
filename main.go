@@ -25,6 +25,9 @@ func main() {
 		log.Fatal(err)
 	}
 	for _, v := range m {
+		if len(v) < 2 {
+			continue
+		}
 		res, err := groupByHash(v)
 		if err != nil {
 			log.Fatal(err)
