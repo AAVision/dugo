@@ -38,7 +38,7 @@ func main() {
 		eq := make(equalSet)
 		for i := range res {
 			for j := i + 1; j < len(res); j++ {
-				b, err := compareByteByByte(res[i], res[j])
+				b, err := filesAreEqual(res[i], res[j])
 				if err != nil {
 					log.Fatal(err)
 				}
