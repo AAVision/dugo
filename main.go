@@ -32,11 +32,25 @@ func main() {
 		if len(res) < 2 {
 			continue
 		}
-		fmt.Printf("res: %v\n", res)
-		b, err := compareByteByByte(res[0], res[1])
-		if err != nil {
-			log.Fatal(err)
+		eq := make(equalSet)
+		for i := range res {
+			for j := i + 1; j < len(res); j++ {
+				b, err := compareByteByByte(res[i], res[j])
+				if err != nil {
+					log.Fatal(err)
+				}
+				if b {
+					eq[res[i]] = struct{}{}
+					eq[res[j]] = struct{}{}
+				}
+			}
 		}
-		fmt.Println("bytes are equal:", b, "res:", res)
+		s := make([]string, len(eq))
+		for k := range eq {
+			s = append(s, k)
+		}
+		fmt.Println("equal files:", s)
 	}
 }
+
+type equalSet map[string]struct{}
