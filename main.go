@@ -1,26 +1,48 @@
 package main
 
 import (
+	"flag"
 	"fmt"
 	"log"
 	"os"
 	"path/filepath"
+	"regexp"
+	"strings"
 )
 
 func main() {
-	args := os.Args
-	if len(args) < 2 {
-		log.Printf("usage: %s <dir-path>", args[0])
-		os.Exit(1)
+	var ignoreNamesFlag, ignoreRegexFlag string
+	flag.StringVar(&ignoreNamesFlag, "ignore-names", "", "Comma-separated list of file/folder names to ignore (exact match)")
+	flag.StringVar(&ignoreRegexFlag, "ignore-regex", "", "Regex pattern to ignore files by path")
+	flag.Parse()
+
+	if flag.NArg() < 1 {
+		log.Fatalf("Usage: %s [options] <dir-path>", filepath.Base(os.Args[0]))
 	}
-	path := args[1]
+	path := flag.Arg(0)
+
+	ignoreNames := map[string]struct{}{}
+	if ignoreNamesFlag != "" {
+		for _, name := range strings.Split(ignoreNamesFlag, ",") {
+			ignoreNames[name] = struct{}{}
+		}
+	}
+
+	var ignoreRegex *regexp.Regexp
+	if ignoreRegexFlag != "" {
+		var err error
+		ignoreRegex, err = regexp.Compile(ignoreRegexFlag)
+		if err != nil {
+			log.Fatalf("Invalid ignore regex: %v", err)
+		}
+	}
 
 	abs, err := filepath.Abs(path)
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	m, err := scanDir(abs)
+	m, err := scanDir(abs, ignoreNames, ignoreRegex)
 	if err != nil {
 		log.Fatal(err)
 	}
