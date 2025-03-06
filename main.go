@@ -69,5 +69,3 @@ func main() {
 		}
 	}
 }
-
-type equalSet map[string]struct{}
