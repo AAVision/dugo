@@ -147,3 +147,66 @@ func TestFilesAreEqual(t *testing.T) {
 		})
 	}
 }
+
+func TestPartitionIntoEqualGroups(t *testing.T) {
+	tempDir := t.TempDir()
+
+	files := []struct {
+		file string
+		text string
+	}{
+		{"text1.txt", "hello text1"},
+		{"text2.txt", "hello text1"},
+		{"text3.txt", "hello text3"},
+		{"text4.txt", "hello text3"},
+		{"text5.txt", ""},
+		{"text6.txt", ""},
+	}
+
+	for _, f := range files {
+		fullPath := filepath.Join(tempDir, f.file)
+		file, err := os.Create(fullPath)
+		if err != nil {
+			t.Error(err)
+		}
+		defer file.Close()
+
+		n, err := io.WriteString(file, f.text)
+		if err != nil {
+			t.Error(err)
+		}
+		if n != len(f.text) {
+			t.Errorf("not all bytes are written to %s, expected: %d, written: %d", f.file, len(f.text), n)
+		}
+	}
+
+	filesNames := make([]string, 0, len(files))
+	for _, v := range files {
+		filesNames = append(filesNames, filepath.Join(tempDir, v.file))
+	}
+
+	groups, err := partitionIntoEqualGroups(filesNames)
+	if err != nil {
+		t.Error(err)
+	}
+
+	if len(groups) != 3 {
+		t.Errorf("3 groups are expected, got: %d", len(groups))
+	}
+
+	for _, group := range groups {
+		if len(group) != 2 {
+			t.Errorf("group of length 2 is expected, got: %d", len(group))
+		}
+		for i := 0; i < len(files); i += 2 {
+			f1 := filepath.Join(tempDir, files[i].file)
+			f2 := filepath.Join(tempDir, files[i+1].file)
+
+			if slices.Contains(group, f1) {
+				if !slices.Contains(group, f2) {
+					t.Errorf("files %q and %q are equal, but they are not in the same group", f1, f2)
+				}
+			}
+		}
+	}
+}
