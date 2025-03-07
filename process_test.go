@@ -77,3 +77,73 @@ func TestGroupByHash(t *testing.T) {
 		}
 	}
 }
+
+func TestFilesAreEqual(t *testing.T) {
+	tempDir := t.TempDir()
+
+	files := [...]struct {
+		name    string
+		content string
+	}{
+		{"f1.txt", "hello file"},
+		{"f2.txt", "hello file"},
+		{"f3.txt", ""},
+		{"f4.txt", ""},
+		{"f5.txt", "HELLO FILE!"},
+		{"f6.txt", "hello file!"},
+		{"f7.txt", "hello world"},
+		{"f8.txt", "hello world from Go"},
+	}
+
+	for _, f := range files {
+		fullPath := filepath.Join(tempDir, f.name)
+		file, err := os.Create(fullPath)
+		if err != nil {
+			t.Error(err)
+		}
+		defer file.Close()
+
+		n, err := io.WriteString(file, f.content)
+		if err != nil {
+			t.Error(err)
+		}
+		if n != len(f.content) {
+			t.Errorf("not all bytes are written, expected to write: %d, written: %d", len(f.content), n)
+		}
+	}
+
+	data := []struct {
+		name      string
+		file1     string
+		file2     string
+		equal     bool
+		expectErr bool
+	}{
+		{"equal1", files[0].name, files[1].name, true, false},
+		{"equal2", files[2].name, files[3].name, true, false},
+		{"not-equal", files[3].name, files[1].name, false, false},
+		{"not-equal-case-sensitive", files[4].name, files[5].name, false, false},
+		{"not-equal-same-prefix", files[6].name, files[7].name, false, false},
+		{"file doesn't exist", "Non-existent-file", files[0].name, false, true},
+	}
+
+	for _, d := range data {
+		t.Run(d.name, func(t *testing.T) {
+			f1 := filepath.Join(tempDir, d.file1)
+			f2 := filepath.Join(tempDir, d.file2)
+			b, err := filesAreEqual(f1, f2)
+			if d.expectErr {
+				if err == nil {
+					t.Errorf("an error is expected, got: %v", err)
+				}
+				return
+			}
+			if err != nil {
+				t.Error(err)
+			}
+			if b != d.equal {
+				t.Errorf("files are equal? expected: %v, got: %v", d.equal, b)
+			}
+		})
+	}
+}
