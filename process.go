@@ -8,7 +8,7 @@ import (
 	"sync"
 )
 
-func groupByHash(files []string, workers uint) ([]string, error) {
+func groupByHash(files []string, workers uint) (map[string][]string, error) {
 	type hashResult struct {
 		hash string
 		file string
@@ -50,14 +50,14 @@ func groupByHash(files []string, workers uint) ([]string, error) {
 		m[res.hash] = append(m[res.hash], res.file)
 	}
 
-	var s []string
-	for _, v := range m {
+	mm := make(map[string][]string)
+	for k, v := range m {
 		if len(v) > 1 {
-			s = append(s, v...)
+			mm[k] = v
 		}
 	}
 
-	return s, nil
+	return mm, nil
 }
 
 func filesAreEqual(file1, file2 string) (bool, error) {

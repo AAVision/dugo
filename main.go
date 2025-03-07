@@ -69,17 +69,17 @@ func main() {
 				log.Printf("Skipping due to error: %v", err)
 				return
 			}
-			if len(res) < 2 {
-				return
-			}
-			groups, err := partitionIntoEqualGroups(res)
-			if err != nil {
-				log.Printf("Error partitioning: %v", err)
-				return
-			}
-			for _, group := range groups {
-				if len(group) >= 2 {
-					results <- group
+
+			for _, v := range res {
+				groups, err := partitionIntoEqualGroups(v)
+				if err != nil {
+					log.Printf("Error partitioning: %v", err)
+					return
+				}
+				for _, group := range groups {
+					if len(group) >= 2 {
+						results <- group
+					}
 				}
 			}
 		}(v)
