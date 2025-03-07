@@ -14,8 +14,10 @@ import (
 func main() {
 	var ignoreNamesFlag, ignoreRegexFlag string
 	var workers uint
+	var deleteFlag bool
 	flag.StringVar(&ignoreNamesFlag, "ignore-names", "", "Comma-separated list of file/folder names to ignore (exact match)")
 	flag.StringVar(&ignoreRegexFlag, "ignore-regex", "", "Regex pattern to ignore files by path")
+	flag.BoolVar(&deleteFlag, "delete", false, "Enable interactive deletion of duplicates")
 	flag.UintVar(&workers, "workers", 4, "Number of concurrent workers")
 	flag.Parse()
 
@@ -90,8 +92,16 @@ func main() {
 		close(results)
 	}()
 
+	var allGroups [][]string
 	for group := range results {
-		fmt.Println("Equal files:", group)
+		if deleteFlag {
+			allGroups = append(allGroups, group)
+		} else {
+			fmt.Println("Equal files:", group)
+		}
 	}
 
+	if deleteFlag {
+		handleDeletions(allGroups)
+	}
 }
