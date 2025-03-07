@@ -5,21 +5,52 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"sync"
 )
 
-func groupByHash(files []string) ([]string, error) {
-	m := map[string][]string{}
-
-	for _, v := range files {
-		h, err := createFileHash(v)
-		if err != nil {
-			return nil, err
-		}
-		m[h] = append(m[h], v)
+func groupByHash(files []string, workers uint) ([]string, error) {
+	type hashResult struct {
+		hash string
+		file string
+		err  error
 	}
 
-	s := []string{}
+	hashChan := make(chan string, len(files))
+	resultChan := make(chan hashResult, len(files))
 
+	var wg sync.WaitGroup
+	for range workers {
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			for file := range hashChan {
+				h, err := createFileHash(file)
+				resultChan <- hashResult{h, file, err}
+			}
+		}()
+	}
+
+	go func() {
+		for _, file := range files {
+			hashChan <- file
+		}
+		close(hashChan)
+	}()
+
+	go func() {
+		wg.Wait()
+		close(resultChan)
+	}()
+
+	m := make(map[string][]string)
+	for res := range resultChan {
+		if res.err != nil {
+			return nil, res.err
+		}
+		m[res.hash] = append(m[res.hash], res.file)
+	}
+
+	var s []string
 	for _, v := range m {
 		if len(v) > 1 {
 			s = append(s, v...)
