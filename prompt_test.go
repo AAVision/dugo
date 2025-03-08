@@ -6,6 +6,88 @@ import (
 	"testing"
 )
 
+func TestParseDeleteInput(t *testing.T) {
+	tests := []struct {
+		name        string
+		input       string
+		max         int
+		expected    []int
+		expectedErr bool
+	}{
+		{
+			name:        "valid input with single number",
+			input:       "1",
+			max:         3,
+			expected:    []int{0},
+			expectedErr: false,
+		},
+		{
+			name:        "valid input with multiple numbers",
+			input:       "1 2 3",
+			max:         3,
+			expected:    []int{0, 1, 2},
+			expectedErr: false,
+		},
+		{
+			name:        "input with duplicates",
+			input:       "1 2 2 3",
+			max:         3,
+			expected:    []int{0, 1, 2},
+			expectedErr: false,
+		},
+		{
+			name:        "input with invalid number",
+			input:       "1 4",
+			max:         3,
+			expected:    nil,
+			expectedErr: true,
+		},
+		{
+			name:        "empty input",
+			input:       "",
+			max:         3,
+			expected:    nil,
+			expectedErr: false,
+		},
+		{
+			name:        "input with out-of-range number",
+			input:       "0 2",
+			max:         3,
+			expected:    nil,
+			expectedErr: true,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			result, err := parseDeleteInput(tt.input, tt.max)
+
+			if tt.expectedErr && err == nil {
+				t.Errorf("Expected error but got nil")
+			}
+			if !tt.expectedErr && err != nil {
+				t.Errorf("Unexpected error: %v", err)
+			}
+
+			if !equal(result, tt.expected) {
+				t.Errorf("Expected %v but got %v", tt.expected, result)
+			}
+		})
+	}
+}
+
+func equal(a, b []int) bool {
+	if len(a) != len(b) {
+		return false
+	}
+	for i := range a {
+		if a[i] != b[i] {
+			return false
+		}
+	}
+	return true
+}
+
 func TestDeleteFiles(t *testing.T) {
 	tempDir := t.TempDir()
 
