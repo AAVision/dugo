@@ -31,7 +31,13 @@ func TestCreateFileHash(t *testing.T) {
 	contentFile.Close()
 
 	h := md5.New()
-	io.WriteString(h, content)
+	n, err := io.WriteString(h, content)
+	if err != nil {
+		t.Error(err)
+	}
+	if n != len(content) {
+		t.Errorf("not all bytes are written, expected to write %d bytes, written: %d", len(content), n)
+	}
 	expectedContentHash := hex.EncodeToString(h.Sum(nil))
 
 	emptyHash := md5.New()

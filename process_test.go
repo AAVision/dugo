@@ -43,7 +43,13 @@ func TestGroupByHash(t *testing.T) {
 		}
 
 		h := md5.New()
-		io.WriteString(h, f.text)
+		n, err = io.WriteString(h, f.text)
+		if err != nil {
+			t.Error(err)
+		}
+		if n != len(f.text) {
+			t.Errorf("not all bytes are written, expected to write %d bytes, written: %d", len(f.text), n)
+		}
 		f.hash = hex.EncodeToString(h.Sum(nil))
 	}
 
