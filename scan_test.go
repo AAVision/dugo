@@ -4,7 +4,6 @@ import (
 	"os"
 	"path/filepath"
 	"regexp"
-	"sort"
 	"testing"
 )
 
@@ -222,14 +221,4 @@ func TestScanDir(t *testing.T) {
 			}
 		})
 	}
-}
-
-// Utility function to normalize paths for consistent comparison across platforms
-func normalizePaths(paths []string) []string {
-	normalized := make([]string, len(paths))
-	for i, path := range paths {
-		normalized[i] = filepath.ToSlash(path)
-	}
-	sort.Strings(normalized)
-	return normalized
 }
