@@ -6,6 +6,54 @@ import (
 	"testing"
 )
 
+func TestHandleDeletions(t *testing.T) {
+	oldStdin := os.Stdin
+	defer func() { os.Stdin = oldStdin }()
+
+	tmpDir := t.TempDir()
+
+	fileNames := []string{"file1.txt", "file2.txt", "file3.txt"}
+	filePaths := make([]string, len(fileNames))
+	for i, name := range fileNames {
+		path := filepath.Join(tmpDir, name)
+		if err := os.WriteFile(path, []byte("test"), 0644); err != nil {
+			t.Fatalf("Failed to create test file: %v", err)
+		}
+		filePaths[i] = path
+	}
+
+	input := "1 3\n"
+	r, w, err := os.Pipe()
+	if err != nil {
+		t.Fatalf("Pipe creation failed: %v", err)
+	}
+	defer r.Close()
+
+	_, err = w.WriteString(input)
+	if err != nil {
+		t.Fatalf("Failed to write to pipe: %v", err)
+	}
+	w.Close()
+
+	os.Stdin = r
+
+	handleDeletions([][]string{filePaths})
+
+	assertFileExists(t, filePaths[0], false)
+	assertFileExists(t, filePaths[1], true)
+	assertFileExists(t, filePaths[2], false)
+}
+
+func assertFileExists(t *testing.T, path string, shouldExist bool) {
+	t.Helper()
+	_, err := os.Stat(path)
+	if shouldExist && os.IsNotExist(err) {
+		t.Errorf("File %s should exist but was deleted", path)
+	} else if !shouldExist && err == nil {
+		t.Errorf("File %s should be deleted but exists", path)
+	}
+}
+
 func TestParseDeleteInput(t *testing.T) {
 	tests := []struct {
 		name        string
