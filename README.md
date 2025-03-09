@@ -65,9 +65,9 @@ Set the number of concurrent workers (default: 4):
 ```
 
 ### Full Example
-Find duplicates, ignore `.tmp` files, and use 8 workers:
+Find duplicates, ignore `.tmp` files, enable interactive deletion, and use 8 workers:
 ```bash
-./dugo -ignore-regex=".*\.tmp$" -workers=8 /path/to/directory
+./dugo -ignore-regex=".*\.tmp$" -it -workers=8 /path/to/directory
 ```
 
 ---
