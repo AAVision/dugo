@@ -45,7 +45,7 @@ To find duplicates in a directory:
 ### Enable Interactive Deletion
 To interactively delete duplicates:
 ```bash
-./dugo -delete /path/to/directory
+./dugo -it /path/to/directory
 ```
 
 ### Ignore Files or Directories
@@ -79,7 +79,7 @@ Find duplicates, ignore `.tmp` files, and use 8 workers:
 | `-ignore-names` | Comma-separated list of file/directory names to ignore (exact match).       |
 | `-ignore-regex` | Regex pattern to ignore files/directories by path.                          |
 | `-workers`      | Number of concurrent workers (default: 4).                                  |
-| `-delete`       | Enable interactive deletion of duplicate files.                             |
+| `-it`           | Enable interactive deletion of duplicate files.                             |
 
 ---
 
