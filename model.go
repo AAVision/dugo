@@ -72,28 +72,43 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			return m, tea.Quit
 
 		case "up", "k":
+			if len(m.groups) == 0 {
+				return m, nil
+			}
 			if m.currentFile > 0 {
 				m.currentFile--
 			}
 
 		case "down", "j":
+			if len(m.groups) == 0 {
+				return m, nil
+			}
 			if m.currentFile < len(m.groups[m.currentGroup])-1 {
 				m.currentFile++
 			}
 
 		case "left", "h":
+			if len(m.groups) == 0 {
+				return m, nil
+			}
 			if m.currentGroup > 0 {
 				m.currentGroup--
 				m.currentFile = 0
 			}
 
 		case "right", "l":
+			if len(m.groups) == 0 {
+				return m, nil
+			}
 			if m.currentGroup < len(m.groups)-1 {
 				m.currentGroup++
 				m.currentFile = 0
 			}
 
 		case " ":
+			if len(m.groups) == 0 {
+				return m, nil
+			}
 			group := m.currentGroup
 			file := m.currentFile
 
@@ -108,6 +123,9 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			}
 
 		case "d":
+			if len(m.groups) == 0 {
+				return m, nil
+			}
 			m.toDelete = m.getSelectedFiles()
 			if len(m.toDelete) > 0 {
 				m.showConfirm = true
