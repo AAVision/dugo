@@ -19,26 +19,33 @@ var (
 type model struct {
 	groups       [][]string
 	currentGroup int
-	selected     map[int]struct{}
+	currentFile  int
+	selected     map[int]map[int]struct{}
 	quitting     bool
 	err          error
 	scanning     bool
 	resultsChan  <-chan []string
+	showConfirm  bool
+	toDelete     []string
 }
 
 var (
-	titleStyle    = lipgloss.NewStyle().Foreground(lipgloss.Color("227")).Bold(true)
-	groupStyle    = lipgloss.NewStyle().Border(lipgloss.RoundedBorder()).BorderForeground(lipgloss.Color("63")).Padding(1, 2)
-	itemStyle     = lipgloss.NewStyle().PaddingLeft(2)
-	selectedStyle = lipgloss.NewStyle().Foreground(lipgloss.Color("42")).Bold(true)
-	errorStyle    = lipgloss.NewStyle().Foreground(lipgloss.Color("196")).Bold(true)
-	helpStyle     = lipgloss.NewStyle().Foreground(lipgloss.Color("240")).Italic(true)
+	titleStyle = lipgloss.NewStyle().Foreground(lipgloss.Color("227")).Bold(true)
+
+	selectedFileStyle = lipgloss.NewStyle().Foreground(lipgloss.Color("42")).Bold(true)
+	deleteStyle       = lipgloss.NewStyle().Foreground(lipgloss.Color("196")).Bold(true)
+	confirmStyle      = lipgloss.NewStyle().Border(lipgloss.RoundedBorder()).BorderForeground(lipgloss.Color("196")).Padding(1)
+	itemStyle         = lipgloss.NewStyle().PaddingLeft(2)
+	selectedStyle     = lipgloss.NewStyle().Foreground(lipgloss.Color("42")).Bold(true)
+	errorStyle        = lipgloss.NewStyle().Foreground(lipgloss.Color("196")).Bold(true)
+
+	helpStyle = lipgloss.NewStyle().Foreground(lipgloss.Color("240")).Italic(true)
 )
 
 func initialModel(resultsChan <-chan []string) model {
 	return model{
 		resultsChan: resultsChan,
-		selected:    make(map[int]struct{}),
+		selected:    make(map[int]map[int]struct{}),
 		scanning:    true,
 		groups:      make([][]string, 0),
 	}
@@ -51,44 +58,67 @@ func (m model) Init() tea.Cmd {
 	)
 }
 
-func waitForResults(results <-chan []string) tea.Cmd {
-	return func() tea.Msg {
-		if group, ok := <-results; ok {
-			return group
-		}
-		return nil
-	}
-}
-
 func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	switch msg := msg.(type) {
 	case tea.KeyMsg:
+		if m.showConfirm {
+			switch msg.String() {
+			case "y", "Y":
+				return m.deleteFiles()
+			case "n", "N", "esc":
+				m.showConfirm = false
+				m.toDelete = nil
+			}
+			return m, nil
+		}
+
 		switch msg.String() {
 		case "ctrl+c", "q":
 			m.quitting = true
 			return m, tea.Quit
 
 		case "up", "k":
-			if m.currentGroup > 0 {
-				m.currentGroup--
+			if m.currentFile > 0 {
+				m.currentFile--
 			}
 
 		case "down", "j":
+			if m.currentFile < len(m.groups[m.currentGroup])-1 {
+				m.currentFile++
+			}
+
+		case "left", "h":
+			if m.currentGroup > 0 {
+				m.currentGroup--
+				m.currentFile = 0
+			}
+
+		case "right", "l":
 			if m.currentGroup < len(m.groups)-1 {
 				m.currentGroup++
+				m.currentFile = 0
 			}
 
 		case " ":
-			if _, ok := m.selected[m.currentGroup]; ok {
-				delete(m.selected, m.currentGroup)
+			group := m.currentGroup
+			file := m.currentFile
+
+			if _, exists := m.selected[group]; !exists {
+				m.selected[group] = make(map[int]struct{})
+			}
+
+			if _, selected := m.selected[group][file]; selected {
+				delete(m.selected[group], file)
 			} else {
-				m.selected[m.currentGroup] = struct{}{}
+				m.selected[group][file] = struct{}{}
 			}
 
 		case "d":
-			if len(m.selected) > 0 {
-				return m, m.deleteSelected()
+			m.toDelete = m.getSelectedFiles()
+			if len(m.toDelete) > 0 {
+				m.showConfirm = true
 			}
+
 		}
 
 	case []string:
@@ -107,30 +137,19 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	return m, nil
 }
 
-func (m model) deleteSelected() tea.Cmd {
-	return func() tea.Msg {
-		var deleted []string
-		for idx := range m.selected {
-			if idx >= len(m.groups) {
-				continue
-			}
-			group := m.groups[idx]
-			if len(group) == 0 {
-				continue
-			}
-			for i := 1; i < len(group); i++ {
-				if err := os.Remove(group[i]); err == nil {
-					deleted = append(deleted, group[i])
-				}
+func (m model) getSelectedFiles() []string {
+	var toDelete []string
+	for groupIdx, files := range m.selected {
+		if groupIdx >= len(m.groups) {
+			continue
+		}
+		for fileIdx := range files {
+			if fileIdx < len(m.groups[groupIdx]) {
+				toDelete = append(toDelete, m.groups[groupIdx][fileIdx])
 			}
 		}
-		m.selected = make(map[int]struct{})
-		return updateMsg{deleted: deleted}
 	}
-}
-
-type updateMsg struct {
-	deleted []string
+	return toDelete
 }
 
 func (m model) View() string {
@@ -145,6 +164,13 @@ func (m model) View() string {
 	var b strings.Builder
 	b.WriteString(titleStyle.Render("Duplicate File Finder") + "\n\n")
 
+	if m.showConfirm {
+		return confirmStyle.Render(
+			fmt.Sprintf("Delete %d selected files?\n\n", len(m.toDelete))+
+				"[y] Yes  [n] No\n") +
+			helpStyle.Render("(This cannot be undone)")
+	}
+
 	if m.scanning {
 		b.WriteString("🔍 Scanning for duplicates...\n")
 		b.WriteString(helpStyle.Render("(Press q to quit)\n"))
@@ -156,21 +182,91 @@ func (m model) View() string {
 		return b.String()
 	}
 
-	if len(m.groups) > 0 && m.currentGroup < len(m.groups) {
-		group := m.groups[m.currentGroup]
-		groupBox := groupStyle.Render(
-			fmt.Sprintf("Duplicate Group %d/%d\n\n", m.currentGroup+1, len(m.groups)) +
-				renderItems(group, m.currentGroup, m.selected),
-		)
-		b.WriteString(groupBox + "\n\n")
+	current := m.groups[m.currentGroup]
+	b.WriteString(fmt.Sprintf(" Group %d/%d (%d files)\n",
+		m.currentGroup+1, len(m.groups), len(current)))
+
+	for i, file := range current {
+		var line strings.Builder
+
+		if _, selected := m.selected[m.currentGroup][i]; selected {
+			line.WriteString(selectedFileStyle.Render("◉ "))
+		} else {
+			line.WriteString("◌ ")
+		}
+
+		if i == m.currentFile {
+			line.WriteString("➔ ")
+		} else {
+			line.WriteString("  ")
+		}
+
+		line.WriteString(selectedFileStyle.Render(file))
+
+		if _, selected := m.selected[m.currentGroup][i]; selected {
+			line.WriteString(deleteStyle.Render(" (marked for deletion)"))
+		}
+
+		b.WriteString(line.String() + "\n")
 	}
 
 	help := helpStyle.Render(
-		"↑/↓: Navigate • Space: Select • d: Delete selected • q: Quit",
+		"↑/↓: Navigate files • ←/→: Switch groups • Space: Select • d: Delete selected • q: Quit",
 	)
-	b.WriteString(help)
+	b.WriteString("\n" + help)
 
 	return b.String()
+}
+
+func (m model) deleteFiles() (tea.Model, tea.Cmd) {
+	deleted := 0
+	for _, path := range m.toDelete {
+		if err := os.Remove(path); err == nil {
+			deleted++
+			m.removeDeletedFile(path)
+		}
+	}
+
+	m.selected = make(map[int]map[int]struct{})
+	m.toDelete = nil
+	m.showConfirm = false
+
+	return m, tea.Batch(
+		tea.Printf("%s %d files deleted", deleteStyle.Render("✔"), deleted),
+	)
+}
+
+func (m model) removeDeletedFile(path string) {
+	for groupIdx, group := range m.groups {
+		for fileIdx, filePath := range group {
+			if filePath == path {
+				m.groups[groupIdx] = append(group[:fileIdx], group[fileIdx+1:]...)
+
+				if groupIdx == m.currentGroup && fileIdx <= m.currentFile {
+					m.currentFile = max(0, m.currentFile-1)
+				}
+				break
+			}
+		}
+
+		if len(m.groups[groupIdx]) == 0 {
+			m.groups = append(m.groups[:groupIdx], m.groups[groupIdx+1:]...)
+			m.currentGroup = max(0, min(m.currentGroup, len(m.groups)-1))
+		}
+	}
+}
+
+func waitForResults(results <-chan []string) tea.Cmd {
+	return func() tea.Msg {
+		if group, ok := <-results; ok {
+			return group
+		}
+		return nil
+	}
+}
+
+type updateMsg struct {
+	deleted []string
 }
 
 func renderItems(items []string, current int, selected map[int]struct{}) string {
