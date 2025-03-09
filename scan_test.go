@@ -21,6 +21,7 @@ func TestScanDir(t *testing.T) {
 		"regex_ignore/file6.txt":  600,
 		"another_dir/file7.txt":   700,
 		"symlink_target.txt":      800,
+		"local.tmp":               0,
 	}
 
 	dirs := []string{
@@ -28,6 +29,7 @@ func TestScanDir(t *testing.T) {
 		filepath.Join(tempDir, "regex_ignore"),
 		filepath.Join(tempDir, "another_dir"),
 		filepath.Join(tempDir, "empty_dir"),
+		filepath.Join(tempDir, "ignore_dir"),
 	}
 
 	for _, dir := range dirs {
@@ -76,6 +78,7 @@ func TestScanDir(t *testing.T) {
 			ignoreNames: nil,
 			ignoreRegex: nil,
 			expectedSizes: map[int64]int{
+				0:   1,
 				100: 2, // two files of size 100
 				200: 1,
 				300: 1,
@@ -93,6 +96,7 @@ func TestScanDir(t *testing.T) {
 			ignoreNames: map[string]struct{}{"ignored_file.txt": {}},
 			ignoreRegex: nil,
 			expectedSizes: map[int64]int{
+				0:   1,
 				100: 2,
 				200: 1,
 				400: 2,
@@ -108,6 +112,7 @@ func TestScanDir(t *testing.T) {
 			ignoreNames: nil,
 			ignoreRegex: regexp.MustCompile(`regex_ignore`),
 			expectedSizes: map[int64]int{
+				0:   1,
 				100: 2,
 				200: 1,
 				300: 1,
@@ -124,6 +129,7 @@ func TestScanDir(t *testing.T) {
 			ignoreNames: map[string]struct{}{"ignored_file.txt": {}},
 			ignoreRegex: regexp.MustCompile(`regex_ignore`),
 			expectedSizes: map[int64]int{
+				0:   1,
 				100: 2,
 				200: 1,
 				400: 2,
@@ -158,6 +164,41 @@ func TestScanDir(t *testing.T) {
 			ignoreRegex:   nil,
 			expectedSizes: map[int64]int{},
 			expectError:   false,
+		},
+		{
+			name:        "Ignore directory",
+			root:        tempDir,
+			ignoreNames: map[string]struct{}{"ignore_dir": struct{}{}},
+			ignoreRegex: nil,
+			expectedSizes: map[int64]int{
+				0:   1,
+				100: 2,
+				200: 1,
+				300: 1,
+				400: 2,
+				500: 1,
+				600: 1,
+				700: 1,
+				800: 1,
+			},
+			expectError: false,
+		},
+		{
+			name:        "Ignore file by regex",
+			root:        tempDir,
+			ignoreNames: nil,
+			ignoreRegex: regexp.MustCompile(`.*\.tmp$`),
+			expectedSizes: map[int64]int{
+				100: 2,
+				200: 1,
+				300: 1,
+				400: 2,
+				500: 1,
+				600: 1,
+				700: 1,
+				800: 1,
+			},
+			expectError: false,
 		},
 	}
 
