@@ -16,6 +16,7 @@ import (
 func main() {
 	var ignoreNamesFlag, ignoreRegexFlag string
 	var workers uint
+	var interactiveMode bool
 	flag.StringVar(&ignoreNamesFlag, "ignore-names", "", "Comma-separated list of file/folder names to ignore (exact match)")
 	flag.StringVar(&ignoreRegexFlag, "ignore-regex", "", "Regex pattern to ignore files by path")
 	flag.BoolVar(&interactiveMode, "it", false, "Interactive TUI mode")
