@@ -9,15 +9,16 @@ import (
 	"regexp"
 	"strings"
 	"sync"
+
+	tea "github.com/charmbracelet/bubbletea"
 )
 
 func main() {
 	var ignoreNamesFlag, ignoreRegexFlag string
 	var workers uint
-	var deleteFlag bool
 	flag.StringVar(&ignoreNamesFlag, "ignore-names", "", "Comma-separated list of file/folder names to ignore (exact match)")
 	flag.StringVar(&ignoreRegexFlag, "ignore-regex", "", "Regex pattern to ignore files by path")
-	flag.BoolVar(&deleteFlag, "delete", false, "Enable interactive deletion of duplicates")
+	flag.BoolVar(&interactiveMode, "it", false, "Interactive TUI mode")
 	flag.UintVar(&workers, "workers", 4, "Number of concurrent workers")
 	flag.Parse()
 
@@ -55,53 +56,53 @@ func main() {
 	sem := make(chan struct{}, workers)
 	results := make(chan []string)
 
-	var wg sync.WaitGroup
-	for _, v := range m {
-		if len(v) < 2 {
-			continue
-		}
-		wg.Add(1)
-		go func(files sameSizeFiles) {
-			defer wg.Done()
-			sem <- struct{}{}
-			defer func() { <-sem }()
-
-			res, err := groupByHash(files, workers)
-			if err != nil {
-				log.Printf("Skipping due to error: %v", err)
-				return
+	go func() {
+		var wg sync.WaitGroup
+		for _, v := range m {
+			if len(v) < 2 {
+				continue
 			}
+			wg.Add(1)
+			go func(files sameSizeFiles) {
+				defer wg.Done()
+				sem <- struct{}{}
+				defer func() { <-sem }()
 
-			for _, v := range res {
-				groups, err := partitionIntoEqualGroups(v)
+				res, err := groupByHash(files, workers)
 				if err != nil {
-					log.Printf("Error partitioning: %v", err)
+					log.Printf("Error: %v", err)
 					return
 				}
-				for _, group := range groups {
-					if len(group) >= 2 {
-						results <- group
+
+				for _, v := range res {
+					groups, err := partitionIntoEqualGroups(v)
+					if err != nil {
+						log.Printf("Error: %v", err)
+						continue
+					}
+					for _, group := range groups {
+						if len(group) >= 2 {
+							results <- group
+						}
 					}
 				}
-			}
-		}(v)
-	}
+			}(v)
+		}
 
-	go func() {
-		wg.Wait()
-		close(results)
+		go func() {
+			wg.Wait()
+			close(results)
+		}()
 	}()
 
-	var allGroups [][]string
-	for group := range results {
-		if deleteFlag {
-			allGroups = append(allGroups, group)
-		} else {
+	if interactiveMode {
+		p := tea.NewProgram(initialModel(results))
+		if _, err := p.Run(); err != nil {
+			log.Fatal(err)
+		}
+	} else {
+		for group := range results {
 			fmt.Println("Equal files:", group)
 		}
-	}
-
-	if deleteFlag {
-		handleDeletions(allGroups)
 	}
 }
