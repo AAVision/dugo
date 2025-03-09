@@ -9,13 +9,6 @@ import (
 	"github.com/charmbracelet/lipgloss"
 )
 
-var (
-	interactiveMode bool
-	ignoreNamesFlag string
-	ignoreRegexFlag string
-	workers         uint
-)
-
 type model struct {
 	groups       [][]string
 	currentGroup int
