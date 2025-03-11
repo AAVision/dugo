@@ -92,26 +92,6 @@ Find duplicates, ignore `.tmp` files, enable interactive deletion, and use 8 wor
 
 ---
 
-## Example Output
-
-### Without Deletion
-```
-Equal files: [/path/to/file1.txt /path/to/file2.txt]
-Equal files: [/path/to/image1.png /path/to/image2.png]
-```
-
-### With Deletion
-```
-Duplicate group (2 files):
-[1] /path/to/file1.txt
-[2] /path/to/file2.txt
-
-Enter numbers to delete (space-separated, 'a' to abort): 1
-Deleted: /path/to/file1.txt
-```
-
----
-
 ## Contributing
 
 Contributions are welcome! Here’s how you can help:
