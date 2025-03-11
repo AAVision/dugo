@@ -6,21 +6,16 @@ builds:
       - linux
       - darwin
       - windows
-
     goarch:
       - amd64
       - arm64
-
     env:
       - CGO_ENABLED=0
     flags:
-      - -mod=vendor
+      - -mod=readonly
 
 release:
   prerelease: auto
 
 universal_binaries:
   - replace: true
-
-checksum:
-  name_template: "checksums.txt"
