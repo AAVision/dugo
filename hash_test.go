@@ -1,12 +1,13 @@
 package main
 
 import (
-	"crypto/md5"
 	"encoding/hex"
 	"io"
 	"os"
 	"path/filepath"
 	"testing"
+
+	"golang.org/x/crypto/blake2b"
 )
 
 func TestCreateFileHash(t *testing.T) {
@@ -30,7 +31,10 @@ func TestCreateFileHash(t *testing.T) {
 	}
 	contentFile.Close()
 
-	h := md5.New()
+	h, err := blake2b.New256(nil)
+	if err != nil {
+		t.Fatalf("Failed to create BLAKE2b hash: %v", err)
+	}
 	n, err := io.WriteString(h, content)
 	if err != nil {
 		t.Error(err)
@@ -40,7 +44,10 @@ func TestCreateFileHash(t *testing.T) {
 	}
 	expectedContentHash := hex.EncodeToString(h.Sum(nil))
 
-	emptyHash := md5.New()
+	emptyHash, err := blake2b.New256(nil)
+	if err != nil {
+		t.Fatalf("Failed to create BLAKE2b hash for empty file: %v", err)
+	}
 	expectedEmptyHash := hex.EncodeToString(emptyHash.Sum(nil))
 
 	tests := []struct {
