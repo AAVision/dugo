@@ -1,11 +1,12 @@
 package main
 
 import (
-	"crypto/md5"
 	"encoding/hex"
 	"fmt"
 	"io"
 	"os"
+
+	"golang.org/x/crypto/blake2b"
 )
 
 func createFileHash(filePath string) (string, error) {
@@ -15,7 +16,11 @@ func createFileHash(filePath string) (string, error) {
 	}
 	defer file.Close()
 
-	hash := md5.New()
+	hash, err := blake2b.New256(nil)
+	if err != nil {
+		return "", fmt.Errorf("failed to create BLAKE2b hash: %w", err)
+	}
+
 	if _, err := io.Copy(hash, file); err != nil {
 		return "", fmt.Errorf("failed to compute hash: %w", err)
 	}
