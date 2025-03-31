@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"crypto/md5"
 	"encoding/hex"
 	"io"
@@ -58,7 +59,7 @@ func TestGroupByHash(t *testing.T) {
 		filesNames = append(filesNames, filepath.Join(tempDir, v.file))
 	}
 
-	m, err := groupByHash(filesNames, workers)
+	m, err := groupByHash(context.Background(), filesNames, workers)
 	if err != nil {
 		t.Error(err)
 	}

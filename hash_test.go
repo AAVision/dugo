@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"encoding/hex"
 	"io"
 	"os"
@@ -84,7 +85,7 @@ func TestCreateFileHash(t *testing.T) {
 
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
-			hash, err := createFileHash(tc.filePath)
+			hash, _, err := createFileHash(context.Background(), tc.filePath)
 
 			if tc.expectedErrMsg != "" {
 				if err == nil {
