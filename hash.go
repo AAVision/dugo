@@ -1,7 +1,6 @@
 package main
 
 import (
-	"context"
 	"fmt"
 	"io"
 	"os"
@@ -11,7 +10,7 @@ import (
 )
 
 const (
-	bufferSize      = 32 * 1024
+	bufferSize = 32 * 1024
 )
 
 var bufPool = sync.Pool{
@@ -21,30 +20,22 @@ var bufPool = sync.Pool{
 	},
 }
 
-func createFileHash(ctx context.Context, filePath string) (string, int64, error){
+func createFileHash(filePath string) (string, error) {
 	file, err := os.Open(filePath)
 	if err != nil {
-		return "", 0, fmt.Errorf("failed to open file: %w", err)
+		return "", fmt.Errorf("failed to open file: %w", err)
 	}
 	defer file.Close()
-
-	fileInfo, err := file.Stat()
-	if err != nil {
-		return "", 0, fmt.Errorf("failed to get file stats: %w", err)
-	}
-
-	fileSize := fileInfo.Size()
 
 	var hash string
 
 	hash, err = hashXXH3(file)
-	
 
 	if err != nil {
-		return "", fileSize, fmt.Errorf("hashing failed: %w", err)
+		return "", fmt.Errorf("hashing failed: %w", err)
 	}
 
-	return hash, fileSize, nil
+	return hash, nil
 
 }
 

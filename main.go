@@ -1,7 +1,6 @@
 package main
 
 import (
-	"context"
 	"flag"
 	"fmt"
 	"log"
@@ -70,7 +69,7 @@ func main() {
 				sem <- struct{}{}
 				defer func() { <-sem }()
 
-				res, err := groupByHash(context.Background(), files, workers)
+				res, err := groupByHash(files, workers)
 				if err != nil {
 					log.Printf("Error: %v", err)
 					return

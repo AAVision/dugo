@@ -2,55 +2,39 @@ package main
 
 import (
 	"bytes"
-	"context"
 	"fmt"
 	"io"
 	"os"
 	"sync"
 )
 
-func groupByHash(ctx context.Context, files []string, workers uint) (map[string][]string, error) {
+func groupByHash(files []string, workers uint) (map[string][]string, error) {
 	type hashResult struct {
 		hash string
 		file string
 		err  error
 	}
 
-	ctx, cancel := context.WithCancel(ctx)
-	defer cancel()
-
 	hashChan := make(chan string, len(files))
 	resultChan := make(chan hashResult, len(files))
 
 	var wg sync.WaitGroup
-
-	wg.Add(int(workers))
-
-	for i := 0; i < int(workers); i++ {
+	for range workers {
+		wg.Add(1)
 		go func() {
 			defer wg.Done()
 			for file := range hashChan {
-				select {
-				case <-ctx.Done():
-					return
-				default:
-					hash, _, err := createFileHash(ctx, file)
-					resultChan <- hashResult{hash, file, err}
-				}
+				h, err := createFileHash(file)
+				resultChan <- hashResult{h, file, err}
 			}
 		}()
 	}
 
 	go func() {
-		defer close(hashChan)
-
 		for _, file := range files {
-			select{
-				case hashChan <- file:
-				case <-ctx.Done():
-					return
-			}
+			hashChan <- file
 		}
+		close(hashChan)
 	}()
 
 	go func() {
@@ -61,7 +45,6 @@ func groupByHash(ctx context.Context, files []string, workers uint) (map[string]
 	m := make(map[string][]string)
 	for res := range resultChan {
 		if res.err != nil {
-			cancel()
 			return nil, res.err
 		}
 		m[res.hash] = append(m[res.hash], res.file)
